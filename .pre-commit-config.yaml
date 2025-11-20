@@ -1,0 +1,43 @@
+repos:
+  # ------------------------------
+  # 1. Golang built-in formatters
+  # ------------------------------
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-imports
+      - id: go-vet
+      - id: go-mod-tidy
+      - id: go-build
+
+  # ------------------------------`
+  # 2. GolangCI-Lint
+  # ------------------------------
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.61.0
+    hooks:
+      - id: golangci-lint
+        args: ["--fast"]
+
+  # ------------------------------
+  # 3. General best practices (YAML/JSON/Whitespace)
+  # ------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=200"]
+
+  # ------------------------------
+  # 4. Conventional Commits
+  # ------------------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
