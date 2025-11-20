@@ -1,0 +1,6 @@
+package: gen
+output: internal/infra/transport/rest/gen/server.gen.go
+generate:
+  chi-server: true
+  models: false
+  embedded-spec: true

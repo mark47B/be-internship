@@ -1,0 +1,5 @@
+package: gen
+output: internal/infra/transport/rest/gen/models.gen.go
+generate:
+  models: true
+  embedded-spec: false
