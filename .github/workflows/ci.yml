@@ -1,4 +1,4 @@
-name: CI|lint&test&build&push
+name: CI|lint;codegen;tests;build&push
 
 # Запуск на каждый push и PR в main
 on:
@@ -227,7 +227,7 @@ jobs:
           DB_URL: postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable
 
   # ===================================================================
-  # 6. Сборка Docker образа (только на main)
+  # 6. Сборка Docker образа и push в ghcr
   # ===================================================================
   docker-build:
     name: Build & Push Docker Image

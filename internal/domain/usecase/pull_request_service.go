@@ -2,19 +2,31 @@ package usecase
 
 import (
 	"context"
+	"errors"
 
 	"github.com/mark47B/be-internship/internal/domain/entity"
 )
 
+var (
+	ErrTeamNotFound  = errors.New("team not found")
+	ErrTeamExists    = errors.New("team already exists")
+	ErrUserNotFound  = errors.New("user not found")
+	ErrPRNotFound    = errors.New("pull request not found")
+	ErrNoCandidates  = errors.New("no active candidates found")
+	ErrAlreadyMerged = errors.New("pull request already merged")
+	ErrNotReviewer   = errors.New("user is not assigned reviewer")
+	ErrPRExists      = errors.New("PR already exists")
+)
+
 type TeamUseCase interface {
 	// Создать/обновить команду и её участников
-	AddOrUpdateTeam(ctx context.Context, team entity.Team) (entity.Team, error)
+	// AddOrUpdateTeam(ctx context.Context, team entity.Team) (entity.Team, error)
 
 	// Получить команду по имени
 	GetTeam(ctx context.Context, teamName string) (entity.Team, error)
 
 	// Массовая деактивация пользователей + безопасное переназначение PR
-	DeactivateUsersAndReassign(ctx context.Context, teamName string, userIDs []string) error
+	// DeactivateUsersAndReassign(ctx context.Context, teamName string, userIDs []string) error
 }
 
 // Управление пользователями
@@ -47,6 +59,6 @@ type PullRequestUseCase interface {
 // Фасад для агрегации интерфейсов сервиса
 type Service interface {
 	TeamUseCase
-	UserUseCase
-	PullRequestUseCase
+	// UserUseCase
+	// PullRequestUseCase
 }

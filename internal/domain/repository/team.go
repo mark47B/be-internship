@@ -7,6 +7,6 @@ import (
 )
 
 type TeamRepository interface {
-	Save(ctx context.Context, team entity.Team) error
+	// Save(ctx context.Context, team entity.Team) error
 	Get(ctx context.Context, name string) (entity.Team, error)
 }

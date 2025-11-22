@@ -83,6 +83,10 @@ BEGIN
     END IF;
   END IF;
 
+  -- Для DELETE возвращаем OLD, для INSERT/UPDATE - NEW
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
   RETURN NEW;
 END;
 $$;

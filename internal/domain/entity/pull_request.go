@@ -3,13 +3,12 @@ package entity
 import "time"
 
 type PullRequest struct {
-	ID                string
-	Name              string
-	AuthorID          string
-	Status            PRStatus
-	AssignedReviewers []string
-	CreatedAt         *time.Time
-	MergedAt          *time.Time
+	ID        string
+	Name      string
+	AuthorID  string
+	Status    PRStatus
+	CreatedAt *time.Time
+	MergedAt  *time.Time
 }
 
 type PRStatus string
