@@ -40,6 +40,14 @@ type ErrorResponse struct {
 // ErrorResponseErrorCode defines model for ErrorResponse.Error.Code.
 type ErrorResponseErrorCode string
 
+// PRStats defines model for PRStats.
+type PRStats struct {
+	AvgReviewers *float32 `json:"avg_reviewers"`
+	Merged       int      `json:"merged"`
+	Open         int      `json:"open"`
+	Total        int      `json:"total"`
+}
+
 // PullRequest defines model for PullRequest.
 type PullRequest struct {
 	// AssignedReviewers user_id назначенных ревьюверов (0..2)
@@ -87,6 +95,14 @@ type User struct {
 	Username string `json:"username"`
 }
 
+// UserStats defines model for UserStats.
+type UserStats struct {
+	CreatedPrCount  int    `json:"created_pr_count"`
+	MergedPrCount   int    `json:"merged_pr_count"`
+	ReviewedPrCount int    `json:"reviewed_pr_count"`
+	UserId          string `json:"user_id"`
+}
+
 // TeamNameQuery defines model for TeamNameQuery.
 type TeamNameQuery = string
 
@@ -117,6 +133,12 @@ type GetTeamGetParams struct {
 	TeamName TeamNameQuery `form:"team_name" json:"team_name"`
 }
 
+// PatchTeamsTeamNameDeactivateMembersJSONBody defines parameters for PatchTeamsTeamNameDeactivateMembers.
+type PatchTeamsTeamNameDeactivateMembersJSONBody struct {
+	// UserIds Список user_id для деактивации
+	UserIds []string `json:"user_ids"`
+}
+
 // GetUsersGetReviewParams defines parameters for GetUsersGetReview.
 type GetUsersGetReviewParams struct {
 	// UserId Идентификатор пользователя
@@ -127,6 +149,12 @@ type GetUsersGetReviewParams struct {
 type PostUsersSetIsActiveJSONBody struct {
 	IsActive bool   `json:"is_active"`
 	UserId   string `json:"user_id"`
+}
+
+// GetUsersStatsParams defines parameters for GetUsersStats.
+type GetUsersStatsParams struct {
+	// UserId Идентификатор пользователя
+	UserId UserIdQuery `form:"user_id" json:"user_id"`
 }
 
 // PostPullRequestCreateJSONRequestBody defines body for PostPullRequestCreate for application/json ContentType.
@@ -140,6 +168,9 @@ type PostPullRequestReassignJSONRequestBody PostPullRequestReassignJSONBody
 
 // PostTeamAddJSONRequestBody defines body for PostTeamAdd for application/json ContentType.
 type PostTeamAddJSONRequestBody = Team
+
+// PatchTeamsTeamNameDeactivateMembersJSONRequestBody defines body for PatchTeamsTeamNameDeactivateMembers for application/json ContentType.
+type PatchTeamsTeamNameDeactivateMembersJSONRequestBody PatchTeamsTeamNameDeactivateMembersJSONBody
 
 // PostUsersSetIsActiveJSONRequestBody defines body for PostUsersSetIsActive for application/json ContentType.
 type PostUsersSetIsActiveJSONRequestBody PostUsersSetIsActiveJSONBody

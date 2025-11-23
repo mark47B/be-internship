@@ -26,6 +26,32 @@ components:
         type: string
       description: Идентификатор пользователя
   schemas:
+    UserStats:
+        type: object
+        required: [ user_id, created_pr_count, reviewed_pr_count, merged_pr_count ]
+        properties:
+          user_id:
+            type: string
+          created_pr_count:
+            type: integer
+          reviewed_pr_count:
+            type: integer
+          merged_pr_count:
+            type: integer
+    PRStats:
+      type: object
+      required: [ total, open, merged ]
+      properties:
+        total:
+          type: integer
+        open:
+          type: integer
+        merged:
+          type: integer
+        avg_reviewers:
+          type: number
+          format: float
+          nullable: true
     ErrorResponse:
       type: object
       required: [error]
@@ -440,3 +466,86 @@ paths:
                   status:
                     type: string
                     example: ok
+  /users/stats:
+    get:
+      tags: [Users]
+      summary: Получить статистику пользователя (созданные PR, ревью, merge)
+      parameters:
+        - $ref: '#/components/parameters/UserIdQuery'
+      responses:
+        '200':
+          description: Статистика пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+              example:
+                user_id: u1
+                created_pr_count: 12
+                reviewed_pr_count: 7
+                merged_pr_count: 10
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /pullRequest/stats:
+    get:
+      tags: [PullRequests]
+      summary: Получить агрегированную статистику по PR
+      responses:
+        '200':
+          description: Общая статистика PR
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PRStats'
+              example:
+                total: 150
+                open: 23
+                merged: 127
+                avg_reviewers: 1.8
+
+  /teams/{teamName}/deactivate-members:
+    patch:
+      tags: [Teams]
+      summary: Массовая деактивация пользователей команды с автоматическим переназначением ревьюверов
+      parameters:
+        - name: teamName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Имя команды
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_ids]
+              properties:
+                user_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Список user_id для деактивации
+            example:
+              user_ids: [u2, u3]
+      responses:
+        '200':
+          description: Пользователи деактивированы, PR переназначены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Users deactivated and PRs reassigned"
+        '404':
+          description: Команда не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }

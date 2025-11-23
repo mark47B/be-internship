@@ -32,18 +32,27 @@ type ServerInterface interface {
 	// Переназначить конкретного ревьювера на другого из его команды
 	// (POST /pullRequest/reassign)
 	PostPullRequestReassign(w http.ResponseWriter, r *http.Request)
+	// Получить агрегированную статистику по PR
+	// (GET /pullRequest/stats)
+	GetPullRequestStats(w http.ResponseWriter, r *http.Request)
 	// Создать команду с участниками (создаёт/обновляет пользователей)
 	// (POST /team/add)
 	PostTeamAdd(w http.ResponseWriter, r *http.Request)
 	// Получить команду с участниками
 	// (GET /team/get)
 	GetTeamGet(w http.ResponseWriter, r *http.Request, params GetTeamGetParams)
+	// Массовая деактивация пользователей команды с автоматическим переназначением ревьюверов
+	// (PATCH /teams/{teamName}/deactivate-members)
+	PatchTeamsTeamNameDeactivateMembers(w http.ResponseWriter, r *http.Request, teamName string)
 	// Получить PR'ы, где пользователь назначен ревьювером
 	// (GET /users/getReview)
 	GetUsersGetReview(w http.ResponseWriter, r *http.Request, params GetUsersGetReviewParams)
 	// Установить флаг активности пользователя
 	// (POST /users/setIsActive)
 	PostUsersSetIsActive(w http.ResponseWriter, r *http.Request)
+	// Получить статистику пользователя (созданные PR, ревью, merge)
+	// (GET /users/stats)
+	GetUsersStats(w http.ResponseWriter, r *http.Request, params GetUsersStatsParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -74,6 +83,12 @@ func (_ Unimplemented) PostPullRequestReassign(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Получить агрегированную статистику по PR
+// (GET /pullRequest/stats)
+func (_ Unimplemented) GetPullRequestStats(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Создать команду с участниками (создаёт/обновляет пользователей)
 // (POST /team/add)
 func (_ Unimplemented) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +101,12 @@ func (_ Unimplemented) GetTeamGet(w http.ResponseWriter, r *http.Request, params
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Массовая деактивация пользователей команды с автоматическим переназначением ревьюверов
+// (PATCH /teams/{teamName}/deactivate-members)
+func (_ Unimplemented) PatchTeamsTeamNameDeactivateMembers(w http.ResponseWriter, r *http.Request, teamName string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Получить PR'ы, где пользователь назначен ревьювером
 // (GET /users/getReview)
 func (_ Unimplemented) GetUsersGetReview(w http.ResponseWriter, r *http.Request, params GetUsersGetReviewParams) {
@@ -95,6 +116,12 @@ func (_ Unimplemented) GetUsersGetReview(w http.ResponseWriter, r *http.Request,
 // Установить флаг активности пользователя
 // (POST /users/setIsActive)
 func (_ Unimplemented) PostUsersSetIsActive(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Получить статистику пользователя (созданные PR, ревью, merge)
+// (GET /users/stats)
+func (_ Unimplemented) GetUsersStats(w http.ResponseWriter, r *http.Request, params GetUsersStatsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -163,6 +190,20 @@ func (siw *ServerInterfaceWrapper) PostPullRequestReassign(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
+// GetPullRequestStats operation middleware
+func (siw *ServerInterfaceWrapper) GetPullRequestStats(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPullRequestStats(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PostTeamAdd operation middleware
 func (siw *ServerInterfaceWrapper) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
 
@@ -211,6 +252,31 @@ func (siw *ServerInterfaceWrapper) GetTeamGet(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// PatchTeamsTeamNameDeactivateMembers operation middleware
+func (siw *ServerInterfaceWrapper) PatchTeamsTeamNameDeactivateMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "teamName" -------------
+	var teamName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "teamName", chi.URLParam(r, "teamName"), &teamName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchTeamsTeamNameDeactivateMembers(w, r, teamName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUsersGetReview operation middleware
 func (siw *ServerInterfaceWrapper) GetUsersGetReview(w http.ResponseWriter, r *http.Request) {
 
@@ -250,6 +316,40 @@ func (siw *ServerInterfaceWrapper) PostUsersSetIsActive(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostUsersSetIsActive(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUsersStats operation middleware
+func (siw *ServerInterfaceWrapper) GetUsersStats(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUsersStatsParams
+
+	// ------------- Required query parameter "user_id" -------------
+
+	if paramValue := r.URL.Query().Get("user_id"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_id"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "user_id", r.URL.Query(), &params.UserId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUsersStats(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -385,16 +485,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/pullRequest/reassign", wrapper.PostPullRequestReassign)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/pullRequest/stats", wrapper.GetPullRequestStats)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/team/add", wrapper.PostTeamAdd)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/team/get", wrapper.GetTeamGet)
 	})
 	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/teams/{teamName}/deactivate-members", wrapper.PatchTeamsTeamNameDeactivateMembers)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/users/getReview", wrapper.GetUsersGetReview)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/users/setIsActive", wrapper.PostUsersSetIsActive)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/users/stats", wrapper.GetUsersStats)
 	})
 
 	return r
@@ -403,43 +512,50 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"xd6H97St1dZ/AgAA///KglwvgycAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
