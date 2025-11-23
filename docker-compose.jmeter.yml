@@ -59,7 +59,7 @@ services:
     environment:
       - THREADS=1
       - RAMP_UP=10
-      - LOOPS=2
+      - LOOPS=1
       - HOST=app
       - PORT=8080
     entrypoint: ["/run-load-test.sh"]

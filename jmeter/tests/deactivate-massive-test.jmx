@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Load Test Plan - Mass Deactivation" enabled="true">
+      <stringProp name="TestPlan.comments">Load test for PR Reviewer Assignment Service with mass deactivate scenario</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="HOST" elementType="Argument">
+            <stringProp name="Argument.name">HOST</stringProp>
+            <stringProp name="Argument.value">${__P(HOST,app)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="PORT" elementType="Argument">
+            <stringProp name="Argument.name">PORT</stringProp>
+            <stringProp name="Argument.value">${__P(PORT,8080)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="RPS" elementType="Argument">
+            <stringProp name="Argument.name">RPS</stringProp>
+            <stringProp name="Argument.value">5</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+
+      <!-- Thread Group -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Users PRs Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControllerGui" testclass="LoopController" testname="Loop Controller">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+      </ThreadGroup>
+      <hashTree>
+
+        <!-- Constant RPS -->
+        <ConstantThroughputTimer guiclass="ConstantThroughputTimerGui" testclass="ConstantThroughputTimer" testname="Constant Throughput 5 RPS" enabled="true">
+          <stringProp name="throughput">${__javaScript(${__P(RPS,5)}*60)}</stringProp>
+          <intProp name="calcMode">1</intProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+
+        <!-- Global Header Manager -->
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Global Headers" enabled="true">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Content-Type</stringProp>
+              <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+
+        <!-- Create Teams, Users, PRs, Mass Deactivate -->
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Create Teams, Users, PRs, Mass Deactivate" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script"><![CDATA[
+import groovy.json.JsonBuilder
+
+int teamCount = 20
+int usersPerTeam = 10
+int prPerTeam = 2
+long ts = System.currentTimeMillis()
+
+teamCount.times { t ->
+    def teamId = t+1
+    def teamName = "team_${teamId}_${ts}"
+
+    // Create users array
+    def users = (1..usersPerTeam).collect { u ->
+        def userId = "u_${teamId}_${u}_${ts}"
+        [user_id: userId, username: "User_${teamId}_${u}", is_active:true]
+    }
+
+    // Store variables
+    vars.put("TEAM_${teamId}", teamName)
+    users.eachWithIndex { u, i -> vars.put("USER_${teamId}_${i+1}", u.user_id) }
+
+    // POST team
+    def teamJson = new JsonBuilder([team_name: teamName, members: users]).toString()
+    def postTeam = new org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy()
+    postTeam.setDomain(vars.get("HOST"))
+    postTeam.setPort(vars.get("PORT") as int)
+    postTeam.setPath("/team/add")
+    postTeam.setMethod("POST")
+    postTeam.addNonEncodedArgument("", teamJson, "")
+    postTeam.setPostBodyRaw(true)
+    postTeam.setProperty(org.apache.jmeter.samplers.SampleResult.DEFAULT_ENCODING, "UTF-8")
+    postTeam.sample()
+
+    // Create PRs
+    (1..prPerTeam).each { p ->
+        def prId = "pr_${teamId}_${p}_${ts}"
+        vars.put("PR_${teamId}_${p}", prId)
+        def prJson = new JsonBuilder([
+            pull_request_id: prId,
+            pull_request_name: "PR ${prId}",
+            author_id: vars.get("USER_${teamId}_1")
+        ]).toString()
+
+        def postPR = new org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy()
+        postPR.setDomain(vars.get("HOST"))
+        postPR.setPort(vars.get("PORT") as int)
+        postPR.setPath("/pullRequest/create")
+        postPR.setMethod("POST")
+        postPR.addNonEncodedArgument("", prJson, "")
+        postPR.setPostBodyRaw(true)
+        postPR.setProperty(org.apache.jmeter.samplers.SampleResult.DEFAULT_ENCODING, "UTF-8")
+        postPR.sample()
+    }
+}
+
+// Mass deactivate first 4 users in first team
+def deactivateJson = new JsonBuilder([
+    user_ids: (1..4).collect { vars.get("USER_1_${it}") }
+]).toString()
+
+def patchDeactivate = new org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy()
+patchDeactivate.setDomain(vars.get("HOST"))
+patchDeactivate.setPort(vars.get("PORT") as int)
+patchDeactivate.setPath("/teams/${vars.get('TEAM_1')}/deactivate-members")
+patchDeactivate.setMethod("PATCH")
+patchDeactivate.addNonEncodedArgument("", deactivateJson, "")
+patchDeactivate.setPostBodyRaw(true)
+patchDeactivate.setProperty(org.apache.jmeter.samplers.SampleResult.DEFAULT_ENCODING, "UTF-8")
+patchDeactivate.sample()
+]]></stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
