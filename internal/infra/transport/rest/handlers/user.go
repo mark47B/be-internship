@@ -99,8 +99,8 @@ func (h *Handlers) GetUsersGetReview(w http.ResponseWriter, r *http.Request, par
 		prShorts = append(prShorts, gen.PullRequestShort{
 			PullRequestId:   pr.ID,
 			PullRequestName: pr.Name,
-			AuthorId:         pr.AuthorID,
-			Status:           gen.PullRequestShortStatus(pr.Status),
+			AuthorId:        pr.AuthorID,
+			Status:          gen.PullRequestShortStatus(pr.Status),
 		})
 	}
 
