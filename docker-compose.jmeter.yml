@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: testavito-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testavito
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_jmeter:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate:latest
+    container_name: testavito-migrate
+    volumes:
+      - ./database/migrations:/migrations
+    command: ["-path", "/migrations", "-database", "postgres://postgres:postgres@postgres:5432/testavito?sslmode=disable", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: testavito-app
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/testavito?sslmode=disable
+      PORT: 8080
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  jmeter:
+    build:
+      context: ./jmeter
+      dockerfile: Dockerfile
+    container_name: testavito-jmeter
+    volumes:
+      - ./jmeter/reports:/reports
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      - THREADS=1
+      - RAMP_UP=10
+      - LOOPS=2
+      - HOST=app
+      - PORT=8080
+    entrypoint: ["/run-load-test.sh"]
+
+volumes:
+  postgres_data_jmeter:
