@@ -1,4 +1,4 @@
-.PHONY: help build test test-e2e lint generate-models generate-server compose-up compose-down clean
+.PHONY: help build test test-e2e lint generate-models generate-server compose-up
 
 # Variables
 OAPI_CODEGEN := oapi-codegen
@@ -28,7 +28,7 @@ generate: generate-models generate-server ## Генерация всего ко�
 build: generate
 	@echo "Building application..."
 	@mkdir -p $(BINARY_DIR)
-	go build -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/app
+	go build -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd
 	@echo "Build completed: $(BINARY_NAME)"
 
 # Linting
@@ -42,15 +42,32 @@ lint: ## Запуск линтера
 	fi
 	@echo "Linting completed"
 
+# Testing
+test-e2e: ## Запуск E2E тестов (требует Docker)
+	@echo "Running E2E tests..."
+	@echo "Note: E2E tests require Docker to be running"
+	go test -tags=e2e -v ./test/e2e
+	@echo "E2E tests completed"
+
 # Docker Compose
+compose-up: ## Запуск docker-compose
+	@echo "Starting services..."
+	docker compose up --build
+	@echo "Services started"
 
 compose-restart:
 	@echo "Stopping services..."
 	docker compose down
-	docker rm $(docker ps -aq)
-	docker volume rm $(docker volume ls -q)
-	docker compose up
+	docker rm -f $$(docker ps -aq) || true
+	docker volume rm $$(docker volume ls -q) || true
+	docker compose up --build
 	@echo "Services stopped"
+
+j-re:
+	docker rm -f $$(docker ps -aq) || true
+	docker volume rm $$(docker volume ls -q) || true
+	docker compose -f docker-compose.jmeter.yml up --build
+
 
 # Development
 dev: generate ## Запуск в режиме разработки (требует локальный PostgreSQL)
