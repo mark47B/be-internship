@@ -33,7 +33,7 @@ func (m *TxManager) DoTx(ctx context.Context, fn func(context.Context) (any, err
 	defer func() {
 		if err := tx.Rollback(); err != nil {
 			if !errors.Is(err, sql.ErrTxDone) {
-				log.Printf("WARNING: tx.Rollback() failed: %v", err)
+				log.Printf("WARNING: transaction Rollback failed: %v", err)
 			}
 		}
 	}()

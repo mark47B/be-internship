@@ -16,6 +16,7 @@ var (
 	ErrAlreadyMerged = errors.New("pull request already merged")
 	ErrNotReviewer   = errors.New("user is not assigned reviewer")
 	ErrPRExists      = errors.New("PR already exists")
+	ErrUserNotInTeam = errors.New("user not belong the team")
 )
 
 type TeamUseCase interface {
@@ -26,7 +27,7 @@ type TeamUseCase interface {
 	GetTeam(ctx context.Context, teamName string) (entity.Team, error)
 
 	// Массовая деактивация пользователей + безопасное переназначение PR
-	// DeactivateUsersAndReassign(ctx context.Context, teamName string, userIDs []string) error
+	DeactivateUsersAndReassign(ctx context.Context, teamName string, userIDs []string) error
 }
 
 // Управление пользователями
@@ -59,6 +60,6 @@ type PullRequestUseCase interface {
 // Фасад для агрегации интерфейсов сервиса
 type Service interface {
 	TeamUseCase
-	// UserUseCase
-	// PullRequestUseCase
+	UserUseCase
+	PullRequestUseCase
 }

@@ -9,6 +9,7 @@ type PullRequest struct {
 	Status    PRStatus
 	CreatedAt *time.Time
 	MergedAt  *time.Time
+	Reviewers []string
 }
 
 type PRStatus string
