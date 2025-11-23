@@ -43,9 +43,10 @@ func main() {
 	teamRepo := pg.NewTeamStorage(db)
 	userRepo := pg.NewUserStorage(db)
 	prRepo := pg.NewPullRequestStorage(db)
+	txRepo := pg.NewTxManager(db)
 
 	// Initialize service
-	svc := app.NewService(teamRepo, userRepo, prRepo)
+	svc := app.NewService(teamRepo, userRepo, prRepo, txRepo)
 
 	// Initialize handlers
 	h := handlers.NewHandlers(svc)

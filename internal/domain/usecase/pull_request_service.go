@@ -20,7 +20,7 @@ var (
 
 type TeamUseCase interface {
 	// Создать/обновить команду и её участников
-	// AddOrUpdateTeam(ctx context.Context, team entity.Team) (entity.Team, error)
+	AddOrUpdateTeam(ctx context.Context, team entity.Team) (entity.Team, error)
 
 	// Получить команду по имени
 	GetTeam(ctx context.Context, teamName string) (entity.Team, error)
